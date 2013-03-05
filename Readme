@@ -1,0 +1,73 @@
+Module Emakefile
+  Specifies some instructions to the compiler of where to place .beam files.
+
+Module twitter.app
+	Located in the ebin directory, conatins some information about the application.
+
+Module twitter_app.erl
+	application OTP
+	Starts the supervisor and registers the handlers for the event managers.
+
+Module twitter_sup.erl
+	supervisor OTP
+	Initializes the children to be supervised. These children are the gen_servers: analytics.erl, twitter.erl and also the gen_event managers tweet_manager.erl, user_manager.erl and log_manager.erl. 
+
+Module twitter.erl:
+	gen_server OTP
+	Specifies the following API functions:
+	- create _user/1 which uses a handle call that calls the API function notify/1 that is specified in 	the module user_manager.erl and also adds a Name that is not_logged_in to the User list in the State.
+	- login_user/1 which changes the login status for the specified user in the state of this 	gen_server. It does not communicate with any event manager, this will only be used to verify if 	a user is logged in when attempting to do a tweet.
+	- create_tweet/2 which uses a handle call to add a tweet and the name of a user into the list Tweets in the State. Also calls the API function add_tweet/2 specified in the module tweet_manager.erl.
+	
+	
+Module user_manager.erl:
+	This is not an OTP, just an actor/process(?) that needs to keep running and have a constant PID that can be called for it to start handlers that can process events. The different handlers that it will access are specified by calling gen_event notify functions, they specify the origin of the call (the name of the manager) and whatever event is happening, which will be matched into the handlers and whichever handler that can find a match will execute the event accordingly. 
+	Links to the following handlers:
+	- user_event.erl
+	- user_log.erl
+
+Module user_event.erl:
+	gen_event OTP
+	Handler of user_manager.erl
+	The incoming event new_user_created is being matched against a handle_event which calls the API function add_user that is specified in the gen_server OTP implemented in module analytics.erl
+
+Module user_log.erl:
+	gen_event OTP
+	Handler of user_manager.erl
+	The incoming event new_user_created is being matched against a handle_event which calls the API function add_user that is specified in a manager implemented in the module log_manager.erl
+	
+
+Module analytics.erl
+	gen_server OTP
+	Specifies the following API functions:
+	- add_user/2 a gen_server:call that will add 1 to its current state that represents the amount of 	users.
+
+Module log_manager.erl
+	This is not an OTP, just an actor/process(?) that needs to keep running and have a constant PID that can be called for it to start handlers that can process events. The different handlers that it will access are specified by calling gen_event notify functions, they specify the origin of the call (the name of the manager) and whatever event is happening, which will be matched into the handlers and whichever handler that can find a match will execute the event accordingly. 
+	Links to the following handlers:
+	log_handler.erl
+
+Module log_handler.erl:
+	gen_event OTP
+	handler of log_manager.erl
+	Keeps a list of events that has happened. When a user has been created and when a tweet has been submitted. Writes the events in the file twitter.log.
+
+Module tweet_manager.erl:
+	This is not an OTP, just an actor/process(?) that needs to keep running and have a constant PID that can be called for it to start handlers that can process events. The different handlers that it will access are specified by calling gen_event notify functions, they specify the origin of the call (the name of the manager) and whatever event is happening, which will be matched into the handlers and whichever handler that can find a match will execute the event accordingly. 
+	Links to the following handlers:
+	tweet_event.erl
+	tweet_log
+
+Module tweet_event.erl:
+	gen_event OTP
+	Handler of tweet_manager.erl
+	The incoming event tweet_added is being matched against a handle_event which calls the API function add_tweet that is specified in the gen_server OTP implemented in module analytics.erl
+
+	
+Module tweet_log.erl:
+	gen_event OTP
+	Handler of tweet_manager.erl
+	The incoming event tweet_added is being matched against a handle_event which calls the API function add_tweet that is specified in the gen_server OTP implemented in module log_manager.erl
+
+
+
